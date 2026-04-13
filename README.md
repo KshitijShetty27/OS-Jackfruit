@@ -2,8 +2,8 @@
 
 ## 1. Team Information
 
-* Name: <Your Name>
-* SRN: <Your SRN>
+* Name: Mallikarjuna Rao R.V, SRN: PES1UG24AM155
+* Name: Kshitij Satish Shetty, SRN: PES1UG24AM143
 
 ---
 
