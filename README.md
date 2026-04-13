@@ -354,3 +354,153 @@ This project successfully demonstrates:
 The system provides a simplified but effective container runtime model.
 
 ---
+
+## 9. Test Cases
+
+### Test Case 1: Multi-container Execution
+
+**Command:**
+
+```bash
+sudo ./engine start alpha ./rootfs-alpha /bin/sh
+sudo ./engine start beta ./rootfs-beta /bin/sh
+```
+
+**Expected Output:**
+
+* Both containers start successfully
+* `engine ps` shows both containers
+
+**Result:**
+
+* Verified — both containers running concurrently
+
+---
+
+### Test Case 2: Metadata Tracking
+
+**Command:**
+
+```bash
+sudo ./engine ps
+```
+
+**Expected Output:**
+
+* Container IDs and PIDs displayed
+
+**Result:**
+
+* Verified — correct metadata shown
+
+---
+
+### Test Case 3: CLI + IPC Communication
+
+**Command:**
+
+```bash
+sudo ./engine start gamma ./rootfs-alpha /bin/sh
+```
+
+**Expected Output:**
+
+* Supervisor responds with `OK`
+
+**Result:**
+
+* Verified — IPC working correctly
+
+---
+
+### Test Case 4: Stop Container
+
+**Command:**
+
+```bash
+sudo ./engine stop alpha
+```
+
+**Expected Output:**
+
+* Container terminates
+* Output shows `STOPPED`
+
+**Result:**
+
+* Verified — container stopped successfully
+
+---
+
+### Test Case 5: Kernel Integration
+
+**Command:**
+
+```bash
+sudo dmesg | tail
+```
+
+**Expected Output:**
+
+* Container registration logs appear
+
+**Result:**
+
+* Verified — kernel module receives data via ioctl
+
+---
+
+### Test Case 6: Memory Stress Test
+
+**Command:**
+
+```bash
+sudo ./engine start gamma ./rootfs-beta /memory_hog
+```
+
+**Expected Output:**
+
+* Memory increases
+* Process gets killed
+
+**Result:**
+
+* Verified — memory limit behavior observed
+
+---
+
+### Test Case 7: Scheduling Behavior
+
+**Command:**
+
+```bash
+sudo ./engine start alpha ./rootfs-alpha /cpu_hog
+sudo ./engine start beta ./rootfs-beta /io_pulse
+```
+
+**Expected Output:**
+
+* CPU-bound and I/O-bound processes behave differently
+
+**Result:**
+
+* Verified — scheduler behavior observed
+
+---
+
+### Test Case 8: Clean Teardown
+
+**Command:**
+
+```bash
+ps aux | grep defunct
+```
+
+**Expected Output:**
+
+* No zombie processes
+
+**Result:**
+
+* Verified — clean shutdown achieved
+---
