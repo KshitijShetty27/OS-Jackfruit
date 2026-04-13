@@ -1,111 +1,355 @@
-# Multi-Container Runtime
+# Multi-Container Runtime with Kernel Memory Monitor
 
-A lightweight Linux container runtime in C with a long-running supervisor and a kernel-space memory monitor.
+## 1. Team Information
 
-Read [`project-guide.md`](project-guide.md) for the full project specification.
+* Name: <Your Name>
+* SRN: <Your SRN>
 
 ---
 
-## Getting Started
+## 2. Build, Load, and Run Instructions
 
-### 1. Fork the Repository
-
-1. Go to [github.com/shivangjhalani/OS-Jackfruit](https://github.com/shivangjhalani/OS-Jackfruit)
-2. Click **Fork** (top-right)
-3. Clone your fork:
+### Step 1: Build Project
 
 ```bash
-git clone https://github.com/<your-username>/OS-Jackfruit.git
-cd OS-Jackfruit
+make
 ```
 
-### 2. Set Up Your VM
-
-You need an **Ubuntu 22.04 or 24.04** VM with **Secure Boot OFF**. WSL will not work.
-
-Install dependencies:
+### Step 2: Load Kernel Module
 
 ```bash
-sudo apt update
-sudo apt install -y build-essential linux-headers-$(uname -r)
+sudo insmod monitor.ko
 ```
 
-### 3. Run the Environment Check
+### Step 3: Verify Device
 
 ```bash
-cd boilerplate
-chmod +x environment-check.sh
-sudo ./environment-check.sh
+ls -l /dev/container_monitor
 ```
 
-Fix any issues reported before moving on.
+---
 
-### 4. Prepare the Root Filesystem
+### Step 4: Start Supervisor
 
 ```bash
-mkdir rootfs-base
-wget https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
-tar -xzf alpine-minirootfs-3.20.3-x86_64.tar.gz -C rootfs-base
+sudo ./engine supervisor ./rootfs-base
+```
 
-# Make one writable copy per container you plan to run
+---
+
+### Step 5: Create Container Root Filesystems
+
+```bash
 cp -a ./rootfs-base ./rootfs-alpha
 cp -a ./rootfs-base ./rootfs-beta
 ```
 
-Do not commit `rootfs-base/` or `rootfs-*` directories to your repository.
+---
 
-### 5. Understand the Boilerplate
-
-The `boilerplate/` folder contains starter files:
-
-| File                   | Purpose                                             |
-| ---------------------- | --------------------------------------------------- |
-| `engine.c`             | User-space runtime and supervisor skeleton          |
-| `monitor.c`            | Kernel module skeleton                              |
-| `monitor_ioctl.h`      | Shared ioctl command definitions                    |
-| `Makefile`             | Build targets for both user-space and kernel module |
-| `cpu_hog.c`            | CPU-bound test workload                             |
-| `io_pulse.c`           | I/O-bound test workload                             |
-| `memory_hog.c`         | Memory-consuming test workload                      |
-| `environment-check.sh` | VM environment preflight check                      |
-
-Use these as your starting point. You are free to restructure the repository however you want — the submission requirements are listed in the project guide.
-
-### 6. Build and Verify
+### Step 6: Start Containers
 
 ```bash
-cd boilerplate
-make
+sudo ./engine start alpha ./rootfs-alpha /bin/sh
+sudo ./engine start beta ./rootfs-beta /bin/sh
 ```
-
-If this compiles without errors, your environment is ready.
-
-### 7. GitHub Actions Smoke Check
-
-Your fork will inherit a minimal GitHub Actions workflow from this repository.
-
-That workflow only performs CI-safe checks:
-
-- `make -C boilerplate ci`
-- user-space binary compilation (`engine`, `memory_hog`, `cpu_hog`, `io_pulse`)
-- `./boilerplate/engine` with no arguments must print usage and exit with a non-zero status
-
-The CI-safe build command is:
-
-```bash
-make -C boilerplate ci
-```
-
-This smoke check does not test kernel-module loading, supervisor runtime behavior, or container execution.
 
 ---
 
-## What to Do Next
+### Step 7: List Running Containers
 
-Read [`project-guide.md`](project-guide.md) end to end. It contains:
+```bash
+sudo ./engine ps
+```
 
-- The six implementation tasks (multi-container runtime, CLI, logging, kernel monitor, scheduling experiments, cleanup)
-- The engineering analysis you must write
-- The exact submission requirements, including what your `README.md` must contain (screenshots, analysis, design decisions)
+---
 
-Your fork's `README.md` should be replaced with your own project documentation as described in the submission package section of the project guide. (As in get rid of all the above content and replace with your README.md)
+### Step 8: Run Workloads
+
+Copy workloads:
+
+```bash
+cp cpu_hog rootfs-alpha/
+cp io_pulse rootfs-beta/
+cp memory_hog rootfs-beta/
+```
+
+Run:
+
+```bash
+sudo ./engine start alpha ./rootfs-alpha /cpu_hog
+sudo ./engine start beta ./rootfs-beta /io_pulse
+sudo ./engine start gamma ./rootfs-beta /memory_hog
+```
+
+---
+
+### Step 9: Stop Containers
+
+```bash
+sudo ./engine stop alpha
+sudo ./engine stop beta
+sudo ./engine stop gamma
+```
+
+---
+
+### Step 10: Check Kernel Logs
+
+```bash
+sudo dmesg | tail
+```
+
+---
+
+### Step 11: Verify Clean Teardown
+
+```bash
+ps aux | grep defunct
+```
+
+---
+
+### Step 12: Unload Module
+
+```bash
+sudo rmmod monitor
+```
+
+---
+
+## 3. Demo with Screenshots
+
+### 1. Multi-container supervision
+
+Show two or more containers running under a single supervisor.
+
+---
+
+### 2. Metadata tracking
+
+Command:
+
+```bash
+sudo ./engine ps
+```
+
+Shows container IDs and PIDs.
+
+---
+
+### 3. Bounded-buffer logging
+
+(If implemented) Show container output captured via logging.
+
+---
+
+### 4. CLI and IPC
+
+Command:
+
+```bash
+sudo ./engine start gamma ./rootfs-alpha /bin/sh
+```
+
+Shows communication between CLI and supervisor.
+
+---
+
+### 5. Soft-limit warning
+
+Kernel logs showing memory warning event.
+
+---
+
+### 6. Hard-limit enforcement
+
+Run:
+
+```bash
+memory_hog
+```
+
+Then:
+
+```bash
+sudo dmesg | tail
+```
+
+Shows process killed due to memory limit.
+
+---
+
+### 7. Scheduling experiment
+
+Run:
+
+```bash
+cpu_hog vs io_pulse
+```
+
+Observe differences in CPU usage.
+
+---
+
+### 8. Clean teardown
+
+Command:
+
+```bash
+ps aux | grep defunct
+```
+
+Shows no zombie processes.
+
+---
+
+## 4. Engineering Analysis
+
+### Isolation Mechanisms
+
+The runtime uses Linux namespaces:
+
+* PID namespace isolates process IDs
+* UTS namespace isolates hostname
+* Mount namespace isolates filesystem
+
+`chroot()` provides filesystem isolation.
+Containers still share:
+
+* kernel
+* CPU scheduler
+* memory subsystem
+
+---
+
+### Supervisor and Process Lifecycle
+
+A long-running supervisor:
+
+* creates containers using `clone()`
+* tracks metadata (ID, PID)
+* handles lifecycle operations
+* uses `waitpid()` to prevent zombie processes
+
+---
+
+### IPC, Threads, and Synchronization
+
+Two IPC mechanisms:
+
+1. UNIX domain sockets (CLI ↔ supervisor)
+2. ioctl (user ↔ kernel module)
+
+Supervisor handles requests sequentially, avoiding race conditions.
+
+---
+
+### Memory Management and Enforcement
+
+RSS (Resident Set Size):
+
+* measures physical memory usage
+* excludes swapped memory
+
+Soft limit:
+
+* generates warning
+
+Hard limit:
+
+* kills process
+
+Kernel enforcement is necessary because:
+
+* user-space cannot reliably control memory
+* kernel has direct access to process memory
+
+---
+
+### Scheduling Behavior
+
+Workloads:
+
+* cpu_hog → CPU-bound
+* io_pulse → I/O-bound
+
+Observations:
+
+* CPU-bound tasks consume more CPU time
+* I/O-bound tasks yield CPU frequently
+
+Linux scheduler ensures:
+
+* fairness
+* responsiveness
+* throughput
+
+---
+
+## 5. Design Decisions and Tradeoffs
+
+### Namespace Isolation
+
+* Choice: namespaces + chroot
+* Tradeoff: lightweight but less secure than VMs
+* Justification: efficiency and simplicity
+
+---
+
+### Supervisor Design
+
+* Choice: single supervisor process
+* Tradeoff: limited parallelism
+* Justification: easier lifecycle control
+
+---
+
+### IPC Mechanism
+
+* Choice: UNIX socket
+* Tradeoff: not highly scalable
+* Justification: simple and reliable
+
+---
+
+### Kernel Monitor
+
+* Choice: kernel module
+* Tradeoff: complexity
+* Justification: accurate enforcement
+
+---
+
+### Scheduling Experiments
+
+* Choice: simple workloads
+* Tradeoff: limited metrics
+* Justification: clear behavior demonstration
+
+---
+
+## 6. Scheduler Experiment Results
+
+| Workload | Behavior               |
+| -------- | ---------------------- |
+| cpu_hog  | High CPU usage         |
+| io_pulse | Intermittent CPU usage |
+
+Observation:
+
+* CPU-bound dominates CPU
+* I/O-bound improves responsiveness
+
+---
+
+## Conclusion
+
+This project demonstrates:
+
+* container isolation using namespaces
+* kernel-user communication via ioctl
+* process lifecycle management
+* kernel-level memory enforcement
+* Linux scheduling behavior
+
+---
