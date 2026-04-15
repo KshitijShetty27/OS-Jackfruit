@@ -166,14 +166,14 @@ sudo rmmod monitor
 
 ### 5. Soft-limit warning
 
-![Soft Limit](screenshots/softlimit.png)
+![Soft Limit](screenshots/soft_hard_limit.png)
 *Kernel logs showing soft memory threshold warning*
 
 ---
 
 ### 6. Hard-limit enforcement
 
-![Hard Limit](screenshots/hardlimit.png)
+![Hard Limit](screenshots/soft_hard_limit.png)
 *Kernel logs showing container killed after exceeding memory limit*
 
 ---
